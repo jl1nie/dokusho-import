@@ -43,6 +43,27 @@ python3 -m dokusho_import.cli --user-id 123456 --save-html ./saved --out booklog
 python3 -m dokusho_import.cli --html-dir ./saved --out booklog.csv
 ```
 
+### 取得だけ先にやってZIPにまとめる
+
+`tools/fetch_bookmeter.py` は**取得だけ**を行う単体スクリプトです。標準ライブラリ
+だけで動くので、このファイル1つをコピーすれば他に何も要りません。
+
+```bash
+python3 fetch_bookmeter.py 621778
+# -> bookmeter_621778.zip
+```
+
+- **中断しても続きから再開します。** 同じコマンドをもう一度実行すれば、
+  取得済みのファイルは読み直さずに残りだけ取ります
+- 解析は一切しないので、パーサを直すたびに読書メーターへ取り直しに行く
+  必要がありません
+- できたZIPを解凍して `--html-dir` に渡せば、そのままCSVになります
+
+```bash
+unzip bookmeter_621778.zip -d saved
+python3 -m dokusho_import.cli --html-dir ./saved --out booklog.csv
+```
+
 ### 推奨の進め方
 
 ```bash
