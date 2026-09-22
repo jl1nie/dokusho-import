@@ -42,24 +42,44 @@ class LocalSource:
 
 
 class RemoteSource:
-    def __init__(self, user_id: str, fetcher: Fetcher):
+    """読書メーターから取得する。
+
+    save_dir を渡すと、取得した生HTMLを LocalSource が読める名前で
+    そのまま書き出す。一度オンラインで流しておけば、以後は
+    --html-dir で同じデータをネットワークなしに再現できる。
+    """
+
+    def __init__(self, user_id: str, fetcher: Fetcher, save_dir: Path | None = None):
         self.user_id = user_id
         self.fetcher = fetcher
+        self.save_dir = save_dir
+        if save_dir is not None:
+            save_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def requests_made(self) -> int:
         return self.fetcher.requests_made
 
+    def _save(self, name: str, html: str | None) -> str | None:
+        if html is not None and self.save_dir is not None:
+            (self.save_dir / name).write_text(html, encoding="utf-8")
+        return html
+
     def read_list(self, page: int) -> str | None:
         # 一覧はキャッシュしない（読了本が増えると内容が変わる）
-        return self.fetcher.get(bookmeter.read_list_url(self.user_id, page), cache_key=None)
+        html = self.fetcher.get(bookmeter.read_list_url(self.user_id, page), cache_key=None)
+        return self._save(f"read_page_{page}.html", html)
 
     def book(self, book_id: str) -> str | None:
         url = bookmeter.BOOK_PAGE.format(book_id=book_id)
-        return self.fetcher.get(url, cache_key=f"book:{book_id}")
+        html = self.fetcher.get(url, cache_key=f"book:{book_id}")
+        return self._save(f"book_{book_id}.html", html)
 
     def user_page(self) -> str | None:
-        return self.fetcher.get(bookmeter.USER_PAGE.format(user_id=self.user_id), cache_key=None)
+        html = self.fetcher.get(
+            bookmeter.USER_PAGE.format(user_id=self.user_id), cache_key=None
+        )
+        return self._save("user.html", html)
 
 
 def collect_entries(source, max_pages: int, log) -> list[bookmeter.ListEntry]:
@@ -205,6 +225,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--ndl-fallback", action="store_true", help="未解決分をNDLで逆引き")
     parser.add_argument("--limit", type=int, help="先頭N冊だけ処理（動作確認用）")
+    parser.add_argument(
+        "--save-html",
+        type=Path,
+        help="取得した生HTMLをこのディレクトリに保存する（後で --html-dir に渡せる）",
+    )
     args = parser.parse_args(argv)
 
     def log(message: str) -> None:
@@ -218,7 +243,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.html_dir:
         source = LocalSource(args.html_dir)
     else:
-        source = RemoteSource(args.user_id, fetcher)
+        source = RemoteSource(args.user_id, fetcher, save_dir=args.save_html)
+        if args.save_html:
+            log(f"生HTMLを {args.save_html} に保存する")
 
     log("読了本の一覧を取得中...")
     entries = collect_entries(source, args.max_pages, log)

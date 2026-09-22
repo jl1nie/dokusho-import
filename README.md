@@ -36,9 +36,30 @@ python3 -m dokusho_import.cli --user-id 123456 --limit 3 --out /tmp/try.csv
 # 冊数をプロフィール表示と照合する（合わなければ終了コード2）
 python3 -m dokusho_import.cli --user-id 123456 --expect 140 --out booklog.csv
 
+# 生HTMLを保存しながら取得する（あとでオフライン再実行できる）
+python3 -m dokusho_import.cli --user-id 123456 --save-html ./saved --out booklog.csv
+
 # ネットワークに出ず、保存済みHTMLだけで動かす
-python3 -m dokusho_import.cli --html-dir ./fixtures --out booklog.csv
+python3 -m dokusho_import.cli --html-dir ./saved --out booklog.csv
 ```
+
+### 推奨の進め方
+
+```bash
+# 1. まず3冊だけ。HTMLも保存しておく
+python3 -m dokusho_import.cli --user-id 123456 --limit 3 \
+    --save-html ./saved --out /tmp/try.csv
+
+# 2. /tmp/try.csv の1行だけをブクログにインポートして、
+#    読書状況・ヘッダ行・文字コードの扱いを確認する
+
+# 3. 問題なければ全件。冊数照合も付ける
+python3 -m dokusho_import.cli --user-id 123456 --expect 140 \
+    --save-html ./saved --out booklog.csv
+```
+
+`--save-html` で保存したディレクトリはそのまま `--html-dir` に渡せます。
+パーサの調整は、読書メーターに再アクセスせずこのディレクトリだけで回せます。
 
 主なオプション:
 
@@ -52,6 +73,8 @@ python3 -m dokusho_import.cli --html-dir ./fixtures --out booklog.csv
 | `--header` | なし | ヘッダ行を付ける |
 | `--quote-all` | なし | 全カラムを引用符で囲む |
 | `--ndl-fallback` | なし | 未解決分をNDLで逆引き（最新版を採用） |
+| `--save-html DIR` | なし | 取得した生HTMLを保存。`--html-dir` に再利用できる |
+| `--limit N` | なし | 先頭N冊だけ処理（動作確認用） |
 
 ## ブクログへのアップロード手順
 
