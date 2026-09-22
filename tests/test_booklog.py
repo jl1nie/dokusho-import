@@ -6,6 +6,13 @@ from dokusho_import import booklog
 
 
 class TestColumns(unittest.TestCase):
+    def test_columns_match_official_spec_line_exactly(self):
+        # 公式ヘルプが示す形式の原文と、列定義が文字単位で一致すること
+        self.assertEqual(",".join(booklog.COLUMNS), booklog.SPEC_LINE)
+
+    def test_spec_line_has_no_stray_spaces(self):
+        self.assertEqual(booklog.SPEC_LINE, booklog.SPEC_LINE.replace(" ", ""))
+
     def test_column_order_and_count(self):
         self.assertEqual(len(booklog.COLUMNS), 11)
         self.assertEqual(booklog.COLUMNS[0], "サービスID")
